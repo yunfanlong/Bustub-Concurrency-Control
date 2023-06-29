@@ -136,7 +136,56 @@ auto LockManager::LockExclusive(Transaction *txn, const RID &rid) -> bool {
 }
 
 auto LockManager::LockUpgrade(Transaction *txn, const RID &rid) -> bool {
+  if (txn->GetState() == TransactionState::ABORTED) {
+    return false;
+  }
+  std::unique_lock<std::mutex> lk(latch_);
+  auto &lock_request_queue = lock_table_[rid];
+  if (lock_request_queue.upgrading_ != INVALID_TXN_ID) {
+    txn->SetState(TransactionState::ABORTED);
+    throw TransactionAbortException(txn->GetTransactionId(), AbortReason::UPGRADE_CONFLICT);
+  }
+  auto &request_queue = lock_request_queue.request_queue_;
+  auto &cv = lock_request_queue.cv_;
+  auto txn_id = txn->GetTransactionId();
+  lock_request_queue.upgrading_ = txn_id;
+  bool can_grant = false;
+  while (!can_grant) {
+    auto it = request_queue.begin();
+    auto target = it;
+    can_grant = true;
+    bool is_kill = false;
+    while (it != request_queue.end() && it->granted_) {
+      if (it->txn_id_ == txn_id) {
+        target = it;
+      } else if (it->txn_id_ > txn_id) {
+        txn_table_[it->txn_id_]->SetState(TransactionState::ABORTED);
+        is_kill = true;
+      } else {
+        can_grant = false;
+      }
+      ++it;
+    }
+    if (is_kill) {
+      lk.unlock();
+      cv.notify_all();
+      lk.lock();
+      continue;
+    }
+    if (!can_grant) {
+      cv.wait(lk);
+    } else {
+      target->lock_mode_ = LockMode::EXCLUSIVE;
+      lock_request_queue.upgrading_ = INVALID_TXN_ID;
+    }
+    if (txn->GetState() == TransactionState::ABORTED) {
+      throw TransactionAbortException(txn->GetTransactionId(), AbortReason::DEADLOCK);
+    }
+  }
 
+  txn->GetSharedLockSet()->erase(rid);
+  txn->GetExclusiveLockSet()->emplace(rid);
+  return true;
 }
 
 auto LockManager::Unlock(Transaction *txn, const RID &rid) -> bool {
