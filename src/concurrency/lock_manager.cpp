@@ -189,7 +189,31 @@ auto LockManager::LockUpgrade(Transaction *txn, const RID &rid) -> bool {
 }
 
 auto LockManager::Unlock(Transaction *txn, const RID &rid) -> bool {
-
+  if (txn->GetState() == TransactionState::GROWING && txn->GetIsolationLevel() == IsolationLevel::REPEATABLE_READ) {
+    txn->SetState(TransactionState::SHRINKING);
+  }
+  /*if(txn->GetIsolationLevel() == IsolationLevel::REPEATABLE_READ && txn->GetState() == TransactionState::SHRINKING){
+    txn->SetState(TransactionState::ABORTED);
+    throw TransactionAbortException(txn->GetTransactionId(),AbortReason::UNLOCK_ON_SHRINKING);
+  }*/
+  std::unique_lock<std::mutex> lk(latch_);
+  auto &lock_request_queue = lock_table_[rid];
+  auto &request_queue = lock_request_queue.request_queue_;
+  auto &cv = lock_request_queue.cv_;
+  auto txn_id = txn->GetTransactionId();
+  auto it = request_queue.begin();
+  while (it->txn_id_ != txn_id) {
+    ++it;
+  }
+  /*if(txn->GetState() == TransactionState::SHRINKING && it->lock_mode_ == LockMode::EXCLUSIVE &&
+  txn->GetIsolationLevel() == IsolationLevel::READ_COMMITTED){ txn->SetState(TransactionState::ABORTED); throw
+  TransactionAbortException(txn->GetTransactionId(),AbortReason::UNLOCK_ON_SHRINKING);
+  }*/
+  request_queue.erase(it);
+  cv.notify_all();
+  txn->GetSharedLockSet()->erase(rid);
+  txn->GetExclusiveLockSet()->erase(rid);
+  return true;
 }
 
 }  // namespace bustub
