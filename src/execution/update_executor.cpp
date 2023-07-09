@@ -53,8 +53,9 @@ bool UpdateExecutor::Next([[maybe_unused]] Tuple *tuple, RID *rid) {
                                                            indexinfo->index_->GetKeyAttrs()),
                                        *rid, txn);
 
-        txn->GetIndexWriteSet()->emplace_back(*rid, table_info_->oid_, WType::UPDATE, *tuple, src_tuple,
-                                              indexinfo->index_oid_, exec_ctx->GetCatalog());
+        IndexWriteRecord iwr(*rid, table_info_->oid_, WType::UPDATE, *tuple, src_tuple, indexinfo->index_oid_,
+                             exec_ctx->GetCatalog());
+        txn->AppendIndexWriteRecord(iwr);
       }
     }
   }

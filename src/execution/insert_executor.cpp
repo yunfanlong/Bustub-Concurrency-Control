@@ -54,8 +54,9 @@ bool InsertExecutor::Next([[maybe_unused]] Tuple *tuple, RID *rid) {
           indexinfo->index_->InsertEntry(
               tmp_tuple.KeyFromTuple(table_info_->schema_, indexinfo->key_schema_, indexinfo->index_->GetKeyAttrs()),
               tmp_rid, txn);
-          txn->GetIndexWriteSet()->emplace_back(tmp_rid, table_info_->oid_, WType::INSERT, tmp_tuple, tmp_tuple,
-                                                indexinfo->index_oid_, exec_ctx->GetCatalog());
+          IndexWriteRecord iwr(*rid, table_info_->oid_, WType::INSERT, *tuple, *tuple, indexinfo->index_oid_,
+                               exec_ctx->GetCatalog());
+          txn->AppendIndexWriteRecord(iwr);
         }
       }
     }
