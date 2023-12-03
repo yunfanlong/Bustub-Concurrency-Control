@@ -45,11 +45,11 @@ Transactions in `bustub` are managed by `Transaction` and `TransactionManager`. 
 
 The actual behavior of transactions in `TransactionManager`, such as `BEGIN`, `COMMIT`, `ABORT`, and the specific transaction corresponding to the ID can be obtained through it.
 
-![figure1](https://github.com/yunfanlong/Concurrency-Control/blob/main/src/figure1.png)
+![figure1](https://github.com/yunfanlong/Concurrency-Control/blob/main/figure1.png)
 
 Different isolation levels of transactions will lead to different possible concurrency exceptions, and are implemented through different ways of acquiring and releasing locks in the two-phase lock strategy.
 
-![figure2](https://github.com/yunfanlong/Concurrency-Control/blob/main/src/figure1.png)
+![figure2](https://github.com/yunfanlong/Concurrency-Control/blob/main/figure1.png)
 
 ### Deadlock prevention strategy
 
@@ -57,7 +57,7 @@ In this experiment, deadlock prevention will be implemented through the `Wound-W
 
 ### Lock request table
 
-![figure3](https://github.com/yunfanlong/Concurrency-Control/blob/main/src/figure3.png)
+![figure3](https://github.com/yunfanlong/Concurrency-Control/blob/main/figure3.png)
 
 In the lock manager, use `lock table` to manage locks. `lock table` is a hash table with tuple ID as key and lock request queue as value. Among them, the lock request stores the transaction ID of the tuple lock requested, the tuple lock type requested, and whether the request is allowed; saving the lock in a queue ensures the order of lock requests:
 
@@ -474,4 +474,4 @@ For `DeleteExecutor` and `UpdateExecutor`, after they obtain the sub-plan node t
 
 ## Test Reslut
 
-![figure4](https://github.com/yunfanlong/Concurrency-Control/blob/main/src/figure4.png)
+![figure4](https://github.com/yunfanlong/Concurrency-Control/blob/main/figure4.png)
