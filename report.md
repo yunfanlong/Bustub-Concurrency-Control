@@ -472,6 +472,6 @@ For `InsertExecutor`, it obtains the write lock of the insertion table after ins
 
 For `DeleteExecutor` and `UpdateExecutor`, after they obtain the sub-plan node tuple, they should add a read lock to the tuple. It should be noted that when the transaction isolation level is `REPEATABLE_READ`, its child plan node owns the read lock of the tuple, so `LockUpgrade` should be called at this time to upgrade the lock instead of obtaining a new write lock.
 
-## Test Reslut
+## Test Result
 
 ![figure4](https://github.com/yunfanlong/Bustub-Concurrency-Control/blob/main/figure4.png)
